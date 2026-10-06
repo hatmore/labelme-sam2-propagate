@@ -148,7 +148,33 @@ def download_checkpoint(
     raise RuntimeError(error_msg)
 
 
-def get_model_config(model_size: str) -> Tuple[str, str]:
+def get_model_spec(model_size: str = "small") -> Tuple[str, str, str]:
+    """Describe a SAM2 model without touching the network or the disk.
+
+    Args:
+        model_size: Model size key ("tiny", "small", "base_plus", "large")
+
+    Returns:
+        Tuple of (config_path, checkpoint_path, primary_download_url).
+        ``checkpoint_path`` is where :func:`download_checkpoint` will place
+        the weights; the file may not exist yet.
+
+    Raises:
+        ValueError: If ``model_size`` is not a known key
+    """
+    if model_size not in MODELS:
+        raise ValueError(
+            f"Invalid model_size: {model_size!r}. "
+            f"Available: {', '.join(MODELS.keys())}"
+        )
+
+    config_path, checkpoint_name, _ = MODELS[model_size]
+    checkpoint_path = os.path.join(CHECKPOINT_DIR, checkpoint_name)
+    primary_url = get_checkpoint_urls(model_size)[0]
+    return config_path, checkpoint_path, primary_url
+
+
+def get_model_config(model_size: str = "small") -> Tuple[str, str]:
     """Get SAM2 config path and checkpoint path.
 
     Downloads checkpoint if not already cached.
@@ -158,14 +184,11 @@ def get_model_config(model_size: str) -> Tuple[str, str]:
 
     Returns:
         Tuple of (config_path, checkpoint_path)
-    """
-    if model_size not in MODELS:
-        raise ValueError(
-            f"Unknown model size: {model_size}. "
-            f"Available: {', '.join(MODELS.keys())}"
-        )
 
-    config_path, _, _ = MODELS[model_size]
+    Raises:
+        ValueError: If ``model_size`` is not a known key
+    """
+    config_path, _, _ = get_model_spec(model_size)
     checkpoint_path = download_checkpoint(model_size)
 
     return config_path, checkpoint_path

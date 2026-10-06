@@ -157,7 +157,9 @@ def visualize_annotation(
         )
 
     # Save output
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     cv2.imwrite(output_path, img, [cv2.IMWRITE_JPEG_QUALITY, 85])
 
 

@@ -4,13 +4,20 @@ Ledger management for tracking auto-generated annotations.
 
 import json
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from .utils import load_labelme_json, shapes_hash
 
 
 LEDGER_FILENAME = ".sam2_auto.json"
 LEGACY_FLAG = "sam2_auto"  # Old flag-based marking (for backward compatibility)
+
+
+def _ledger_for(json_path: str, ledger: Optional[Dict[str, str]]) -> Dict[str, str]:
+    """Return the given ledger, or load the one next to ``json_path``."""
+    if ledger is not None:
+        return ledger
+    return load_ledger(os.path.dirname(os.path.abspath(json_path)))
 
 
 def load_ledger(directory: str) -> Dict[str, str]:
@@ -37,6 +44,7 @@ def save_ledger(directory: str, ledger: Dict[str, str]) -> None:
         directory: Path to annotation directory
         ledger: Dict mapping stem -> shapes_hash
     """
+    os.makedirs(directory, exist_ok=True)
     ledger_path = os.path.join(directory, LEDGER_FILENAME)
     temp_path = ledger_path + ".tmp"
 
@@ -46,7 +54,7 @@ def save_ledger(directory: str, ledger: Dict[str, str]) -> None:
     os.replace(temp_path, ledger_path)
 
 
-def is_auto_generated(json_path: str, ledger: Dict[str, str]) -> bool:
+def is_auto_generated(json_path: str, ledger: Optional[Dict[str, str]] = None) -> bool:
     """Check if annotation was auto-generated and unmodified.
 
     Uses content hash for robust detection. Falls back to legacy flag
@@ -54,11 +62,13 @@ def is_auto_generated(json_path: str, ledger: Dict[str, str]) -> bool:
 
     Args:
         json_path: Path to LabelMe JSON file
-        ledger: Ledger dict from load_ledger()
+        ledger: Ledger dict from load_ledger(). When omitted, the ledger
+            stored next to ``json_path`` is loaded.
 
     Returns:
         True if auto-generated and not manually edited
     """
+    ledger = _ledger_for(json_path, ledger)
     stem = os.path.splitext(os.path.basename(json_path))[0]
 
     try:
@@ -92,18 +102,20 @@ def mark_as_auto(
     ledger[stem] = shapes_hash(shapes)
 
 
-def is_manual_seed(json_path: str, ledger: Dict[str, str]) -> bool:
+def is_manual_seed(json_path: str, ledger: Optional[Dict[str, str]] = None) -> bool:
     """Check if annotation is a manual seed (exists but not auto-generated).
 
     Args:
         json_path: Path to LabelMe JSON file
-        ledger: Ledger dict from load_ledger()
+        ledger: Ledger dict from load_ledger(). When omitted, the ledger
+            stored next to ``json_path`` is loaded.
 
     Returns:
         True if file exists with shapes and is not auto-generated
     """
     if not os.path.exists(json_path):
         return False
+    ledger = _ledger_for(json_path, ledger)
 
     try:
         doc = load_labelme_json(json_path)

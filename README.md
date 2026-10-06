@@ -14,6 +14,14 @@
 
 ---
 
+<div align="center">
+<img src="docs/demo_fast.gif" alt="SAM2 propagation demo" width="800">
+<br>
+<sub><i>Annotate 1 frame → propagate to 24 frames in 35 seconds</i></sub>
+</div>
+
+---
+
 ## 💡 Why This Tool?
 
 LabelMe's built-in SAM is a **per-frame model**—each annotation starts from scratch. This tool uses **SAM 2.1's video predictor** with cross-frame memory:

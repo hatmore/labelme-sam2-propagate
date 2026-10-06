@@ -8,8 +8,16 @@ from collections import defaultdict
 from typing import Dict, List, Tuple
 
 
-# Regex pattern for parsing frame filenames: prefix_seconds_nanoseconds
-FRAME_PATTERN = re.compile(r"^(?P<prefix>.+)_(?P<sec>\d+)_(?P<nsec>\d+)$")
+# Frame filenames are "<prefix>_<seconds>_<nanoseconds>" (ROS-style stamps),
+# but we also accept "<prefix>_<seconds>" and an empty prefix. Patterns are
+# tried in order, strictest first.
+_FRAME_PATTERNS = (
+    re.compile(r"^(?P<prefix>.*)_(?P<sec>\d+)_(?P<nsec>\d+)$"),
+    re.compile(r"^(?P<prefix>.*)_(?P<sec>\d+)$"),
+)
+
+# Key used for files whose name carries no timestamp
+MISC_PREFIX = "_misc"
 
 # Supported image extensions
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".bmp")
@@ -19,25 +27,34 @@ def parse_frame_name(stem: str) -> Tuple[str, int, int]:
     """Parse frame filename into prefix and timestamp.
 
     Args:
-        stem: Filename without extension
+        stem: Filename without extension. A trailing image extension is
+            tolerated and stripped.
 
     Returns:
         Tuple of (prefix, seconds, nanoseconds)
-        Returns ("_misc", 0, 0) for non-matching filenames
+        Returns ("_misc", 0, 0) for filenames without a trailing timestamp
 
     Examples:
         "N_camera_0_link_1788425812_781000000" -> ("N_camera_0_link", 1788425812, 781000000)
         "P_camera_0_link_1788425813_281000000" -> ("P_camera_0_link", 1788425813, 281000000)
-        "random_image" -> ("_misc", 0, 0)
+        "_1788425812_781000000"                -> ("", 1788425812, 781000000)
+        "frame_1788425812"                     -> ("frame", 1788425812, 0)
+        "random_image"                         -> ("_misc", 0, 0)
     """
-    match = FRAME_PATTERN.match(stem)
-    if match:
-        return (
-            match.group("prefix"),
-            int(match.group("sec")),
-            int(match.group("nsec"))
-        )
-    return ("_misc", 0, 0)
+    base, ext = os.path.splitext(stem)
+    if ext.lower() in IMAGE_EXTENSIONS:
+        stem = base
+
+    for pattern in _FRAME_PATTERNS:
+        match = pattern.match(stem)
+        if match:
+            nsec = match.groupdict().get("nsec")
+            return (
+                match.group("prefix"),
+                int(match.group("sec")),
+                int(nsec) if nsec is not None else 0,
+            )
+    return (MISC_PREFIX, 0, 0)
 
 
 def collect_sequences(directory: str) -> Dict[str, List[Tuple[str, str]]]:
@@ -72,12 +89,12 @@ def collect_sequences(directory: str) -> Dict[str, List[Tuple[str, str]]]:
         prefix, sec, nsec = parse_frame_name(stem)
         image_path = os.path.join(directory, filename)
 
-        groups[prefix].append(((sec, nsec), stem, image_path))
+        groups[prefix].append(((sec, nsec, stem), stem, image_path))
 
-    # Sort each group by timestamp
+    # Sort each group by timestamp (stem as a stable tie-breaker)
     result = {}
     for prefix, items in groups.items():
-        items.sort(key=lambda x: x[0])  # Sort by (sec, nsec) tuple
+        items.sort(key=lambda x: x[0])
         result[prefix] = [(stem, path) for _, stem, path in items]
 
     return result
