@@ -1,3 +1,5 @@
+**English** | [中文](README.zh-CN.md)
+
 # LabelMe SAM2 Propagate
 
 <div align="center">
@@ -100,6 +102,9 @@ Optional:
   --overwrite            Overwrite existing manual annotations
   --forward-only         Only forward propagation (no backward)
   --max-points N         Max polygon vertices (default: 200)
+  --only PREFIX          Only process sequences whose prefix contains PREFIX
+  --checkpoint PATH      Use a local SAM2 checkpoint instead of downloading
+  --model-cfg PATH       Use a custom SAM2 config (together with --checkpoint)
 ```
 
 ### Common Workflows
@@ -228,9 +233,20 @@ labelme-sam2-propagate/
 │       ├── utils.py          # Mask/polygon conversion
 │       ├── sequence.py       # Frame parsing and sorting
 │       └── ledger.py         # Auto-generation tracking
+├── tests/                    # pytest suite (unit + --slow integration)
+├── docs/                     # Configuration guide, demo GIFs, publishing notes
+├── examples/                 # Example workflows
 ├── pyproject.toml            # Package metadata
 ├── README.md                 # This file
 └── LICENSE                   # MIT License
+```
+
+### Running the Tests
+
+```bash
+pip install -e ".[dev]"
+pytest tests/                 # unit tests, no GPU or model download needed
+pytest tests/ --slow          # also run end-to-end propagation with the tiny model
 ```
 
 ## 🐛 Troubleshooting

@@ -73,6 +73,13 @@ For more information, see: https://github.com/hatmore/labelme-sam2-propagate
     )
 
     parser.add_argument(
+        "--only",
+        metavar="PREFIX",
+        default=None,
+        help="Only process sequences whose camera prefix contains PREFIX"
+    )
+
+    parser.add_argument(
         "--checkpoint",
         help="Path to SAM2 checkpoint (auto-downloads if not specified)"
     )
@@ -122,6 +129,7 @@ For more information, see: https://github.com/hatmore/labelme-sam2-propagate
             max_points=args.max_points,
             checkpoint=args.checkpoint,
             model_cfg=args.model_cfg,
+            sequence_filter=args.only,
         )
     except KeyboardInterrupt:
         print("\n\nInterrupted by user", file=sys.stderr)
