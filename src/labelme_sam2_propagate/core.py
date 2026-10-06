@@ -136,7 +136,7 @@ def propagate_from_seed(
                 mask = (logits[i] > 0.0).cpu().numpy().squeeze()
 
                 # Convert mask back to polygon
-                polygon = mask_to_polygon(mask, min_area=min_area, max_pts=max_points)
+                polygon = mask_to_polygon(mask, min_area=min_area, max_points=max_points)
                 if polygon is None:
                     continue
 
